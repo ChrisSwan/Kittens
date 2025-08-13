@@ -15,6 +15,9 @@ export interface IPlayerCatnipData {
     catnip: number;
     catnipFields: number;
     nextCatnipFieldPrice: number;
+    // Add the string index signature:
+    [key: string]: any; // NFI why I need this, as it doesn't seem to be in any of the examples. If I use the line below I get even more errors :-(
+//    [key: string]: number | string | boolean | bigint | null | undefined; // Or more specific if all properties are covered
 }
 
 // Game Balance Constants (derived from original user queries/sources):

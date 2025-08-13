@@ -110,7 +110,7 @@ export class PlayerCatnipData {
             console.log(`PlayerCatnipData: Successfully bought catnip field. Fields: ${this._catnipFields}, Catnip: ${this._catnip.toFixed(2)}.`);
             return true;
         } else {
-            console.log(`PlayerCatnipData: Not enough catnip to buy field. Need ${this._nextCatnipFieldPrice}, Have ${this._catnip.toFixed(2)}.`);
+//            console.log(`PlayerCatnipData: Not enough catnip to buy field. Need ${this._nextCatnipFieldPrice}, Have ${this._catnip.toFixed(2)}.`);
             return false;
         }
     }

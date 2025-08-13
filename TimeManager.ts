@@ -64,10 +64,10 @@ export class TimeManager extends hz.Component<typeof TimeManager> {
             if (this._currentTick >= TICKS_PER_DAY) { // Each day consists of 10 ticks [5]
                 this._currentDay++;
                 this._currentTick = 0;
-                console.log(`TimeManager: === New Day: Day ${this._currentDay} ===`);
+//                console.log(`TimeManager: === New Day: Day ${this._currentDay} ===`);
             }
 
-            console.log(`TimeManager: Tick ${this._currentTick}/${TICKS_PER_DAY} of Day ${this._currentDay}.`);
+//            console.log(`TimeManager: Tick ${this._currentTick}/${TICKS_PER_DAY} of Day ${this._currentDay}.`);
         }
     }
 
@@ -102,7 +102,7 @@ export class TimeManager extends hz.Component<typeof TimeManager> {
                 if (this._currentTick % 2 === 0) { // Attempt to buy a field every 2 ticks for demonstration.
                     playerCatnipData.tryBuyCatnipField();
                 }
-
+/*
                 // Log the player's current game state for debugging and monitoring.
                 console.log(
                     `  Player ${player.name.get()} (ID: ${player.id}): ` +
@@ -110,6 +110,7 @@ export class TimeManager extends hz.Component<typeof TimeManager> {
                     `Fields: ${playerCatnipData.getCatnipFields()}, ` +
                     `Next Field Price: ${playerCatnipData.getNextCatnipFieldPrice().toFixed(2)}`
                 );
+*/                
             } else {
                 console.warn(`TimeManager: No PlayerCatnipData found for player ${player.name.get()} (ID: ${player.id}).`);
             }

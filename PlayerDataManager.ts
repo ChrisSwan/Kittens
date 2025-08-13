@@ -41,7 +41,7 @@ export class PlayerDataManager extends hz.Component<typeof PlayerDataManager> {
      */
     preStart(): void {
         PlayerDataManager._instance = this; // Set the static instance for global access.
-        console.log("PlayerDataManager: preStart completed. Instance set.");
+//        console.log("PlayerDataManager: preStart completed. Instance set.");
     }
 
     /**
@@ -49,7 +49,7 @@ export class PlayerDataManager extends hz.Component<typeof PlayerDataManager> {
      * It sets up listeners for players entering and exiting the world instance.
      */
     start(): void {
-        console.log("PlayerDataManager: Initializing...");
+//        console.log("PlayerDataManager: Initializing...");
 
         // Connect to the OnPlayerEnterWorld event to load or initialize player data.
         // This is a server-broadcast CodeBlockEvent, ideal for managing player states [12].
@@ -67,7 +67,7 @@ export class PlayerDataManager extends hz.Component<typeof PlayerDataManager> {
             (player: hz.Player) => this.handlePlayerExit(player)
         );
 
-        console.log("PlayerDataManager: Ready for player management.");
+//        console.log("PlayerDataManager: Ready for player management.");
     }
 
     /**
@@ -113,6 +113,8 @@ export class PlayerDataManager extends hz.Component<typeof PlayerDataManager> {
      * @param player The Horizon player entity who exited the world.
      */
     private handlePlayerExit(player: hz.Player): void {
+        console.log("Handing exit now...");
+
         // Exclude the server player.
         if (player === this.world.getServerPlayer()) {
             return;
