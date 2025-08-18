@@ -28,7 +28,7 @@ export class AnalyticsManager extends hz.Component<typeof AnalyticsManager> {
         const turboSettings: ITurboSettings = {
             useAFK: false,      // Do not track Away from Keyboard status for this game.
             useFriction: false, // Do not track friction events.
-            useHeartBeats: true, // Send periodic heartbeats to track player presence in the world [1].
+            useHeartbeats: false, // Send periodic heartbeats to track player presence in the world [1].
             // Other settings could be added here for more advanced analytics needs.
         };
 
