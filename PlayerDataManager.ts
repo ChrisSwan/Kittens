@@ -1,153 +1,158 @@
-// This component manages loading, saving, and in-memory access of player-specific game data.
-// It MUST run on the server (Default Execution Mode) to interact with Player Persistent Variables (PPVs).
-
 import * as hz from 'horizon/core';
-import { PlayerCatnipData } from './PlayerCatnipData';
-import { PLAYER_DATA_VARIABLE_GROUP, PLAYER_CATNIP_DATA_KEY, IPlayerCatnipData } from './GameConstants';
+import { GameConstants, PlayerData } from 'GameConstants'; // Import constants and PlayerData type
 
-/**
- * Manages the loading, saving, and in-memory access of player-specific game data.
- * This component handles the interaction with Player Persistent Variables (PPVs),
- * ensuring that each player's progress is loaded when they enter the world and
- * saved when they exit.
- */
+// Define NetworkEvents for player data changes.
+// These events allow other scripts (especially client-side ones if implemented in future versions)
+// to react to player data being loaded or updated, promoting loose coupling.
+export const PlayerDataEvents = {
+    onPlayerDataLoaded: new hz.NetworkEvent<{ player: hz.Player, playerData: PlayerData }>('onPlayerDataLoaded'),
+    onPlayerDataUpdated: new hz.NetworkEvent<{ player: hz.Player, playerData: PlayerData }>('onPlayerDataUpdated'),
+};
+
 export class PlayerDataManager extends hz.Component<typeof PlayerDataManager> {
-    static propsDefinition = {}; // No configurable properties are needed for this manager.
+    static propsDefinition = {};
 
-    // A Map to store the live PlayerCatnipData instance for each active player,
-    // keyed by their unique player ID (number) [35].
-    private activePlayerCatnipData: Map<number, PlayerCatnipData> = new Map<number, PlayerCatnipData>();
+    // **Singleton instance**: This static property provides easy access to this manager from other scripts.
+    // It's a common pattern in Horizon Worlds for centralized managers [1, 2].
+    static s_instance: PlayerDataManager;
 
-    // Static instance for easy global access to the manager,
-    // similar to the singleton pattern used in original sources [3, 36, 37].
-    private static _instance: PlayerDataManager | null = null;
-
-    /**
-     * Gets the singleton instance of PlayerDataManager.
-     * This allows other scripts to access player data without direct references.
-     * @returns The PlayerDataManager instance. Throws an error if not yet initialized.
-     */
-    public static getInstance(): PlayerDataManager {
-        if (!PlayerDataManager._instance) {
-            // This error indicates the component needs to be attached to an entity and started in the world.
-            throw new Error("PlayerDataManager not initialized. Ensure it is attached to an entity and running.");
-        }
-        return PlayerDataManager._instance;
-    }
+    // A Map to hold player data in memory. Key: Player ID, Value: PlayerData.
+    // This provides quick access to player data during runtime [3].
+    private playerDataMap: Map<number, PlayerData> = new Map<number, PlayerData>();
 
     /**
-     * `preStart()` is called before any `start()` methods in the world [38, 39].
-     * This is an ideal place to set up the static instance.
+     * `preStart()` is guaranteed to run for all components before any component's `start()` method is called [4, 5].
+     * It's ideal for connecting to events that need to be active immediately upon world load.
      */
-    preStart(): void {
-        PlayerDataManager._instance = this; // Set the static instance for global access.
-//        console.log("PlayerDataManager: preStart completed. Instance set.");
-    }
+    override preStart() {
+        // Assign the singleton instance upon initialization.
+        PlayerDataManager.s_instance = this;
 
-    /**
-     * `start()` is called once when this component is initialized in the world [40, 41].
-     * It sets up listeners for players entering and exiting the world instance.
-     */
-    start(): void {
-//        console.log("PlayerDataManager: Initializing...");
-
-        // Connect to the OnPlayerEnterWorld event to load or initialize player data.
-        // This is a server-broadcast CodeBlockEvent, ideal for managing player states [12].
+        // Listen for players entering the world to load their saved data.
+        // `OnPlayerEnterWorld` is a built-in CodeBlockEvent sent to server-owned entities [3, 6].
         this.connectCodeBlockEvent(
             this.entity,
             hz.CodeBlockEvents.OnPlayerEnterWorld,
-            (player: hz.Player) => this.handlePlayerEnter(player)
+            this.handlePlayerEnterWorld.bind(this) // Bind 'this' to maintain context within the callback.
         );
 
-        // Connect to the OnPlayerExitWorld event to save player data.
-        // This event is crucial for persisting data when a player leaves the world [13, 14].
+        // Listen for players exiting the world to save their current data persistently.
+        // `OnPlayerExitWorld` is also a built-in CodeBlockEvent [7, 8].
         this.connectCodeBlockEvent(
             this.entity,
             hz.CodeBlockEvents.OnPlayerExitWorld,
-            (player: hz.Player) => this.handlePlayerExit(player)
+            this.handlePlayerExitWorld.bind(this)
+        );
+    }
+
+    override start() {
+        // `start()` is called when the component is fully initialized [4].
+        console.log("PlayerDataManager started.");
+    }
+
+    /**
+     * Handles a player entering the world, attempting to load their saved data.
+     * If no data is found, it initializes new player data with default starting values.
+     * @param player The player entity that entered the world.
+     */
+    private async handlePlayerEnterWorld(player: hz.Player) {
+        // Retrieve player data from persistent storage using the defined PPV key [9-11].
+        let playerData: PlayerData | null =
+            await this.world.persistentStorage.getPlayerVariable<PlayerData>(
+                player,
+                GameConstants.PLAYER_DATA_PPV_KEY
+            );
+
+        if (playerData === null) {
+            // If no persistent data exists, initialize a new PlayerData object.
+            playerData = {
+                catnip: GameConstants.STARTING_CATNIP,
+                catnipFields: GameConstants.STARTING_CATNIP_FIELDS,
+            };
+            // Save this initial data immediately to persistent storage.
+            await this.world.persistentStorage.setPlayerVariable(
+                player,
+                GameConstants.PLAYER_DATA_PPV_KEY,
+                playerData
+            );
+            console.log(`Initialized new player data for ${player.name.get()}:`, playerData);
+        } else {
+            console.log(`Loaded player data for ${player.name.get()}:`, playerData);
+        }
+
+        // Store the retrieved or initialized data in the in-memory map for quick access during gameplay.
+        this.playerDataMap.set(player.id, playerData);
+
+        // Broadcast an event that player data has been loaded.
+        this.sendNetworkBroadcastEvent(PlayerDataEvents.onPlayerDataLoaded, { player, playerData });
+    }
+
+    /**
+     * Handles a player exiting the world, saving their current in-memory data to persistent storage.
+     * @param player The player entity that exited the world.
+     */
+    private async handlePlayerExitWorld(player: hz.Player) {
+        // Retrieve data from the in-memory map.
+        const playerData = this.playerDataMap.get(player.id);
+        if (playerData) {
+            // Save the data to persistent storage [12-14].
+            await this.world.persistentStorage.setPlayerVariable(
+                player,
+                GameConstants.PLAYER_DATA_PPV_KEY,
+                playerData
+            );
+            console.log(`Saved player data for ${player.name.get()}:`, playerData);
+            this.playerDataMap.delete(player.id); // Remove from in-memory map as the player is no longer in the instance.
+        } else {
+            console.warn(`Attempted to save data for ${player.name.get()}, but no data found in map.`);
+        }
+    }
+
+    /**
+     * Public method to retrieve a player's current data from the in-memory map.
+     * @param player The player whose data is requested.
+     * @returns The PlayerData object or undefined if not found.
+     */
+    public getPlayerData(player: hz.Player): PlayerData | undefined {
+        return this.playerDataMap.get(player.id);
+    }
+
+    /**
+     * Public method to update a player's data and save it to persistent storage.
+     * Other scripts should call this method to modify player data, ensuring consistency.
+     * @param player The player whose data is being updated.
+     * @param newPlayerData The updated PlayerData object.
+     */
+    public async setPlayerData(player: hz.Player, newPlayerData: PlayerData) {
+        // Update the in-memory map.
+        this.playerDataMap.set(player.id, newPlayerData);
+
+        // Save immediately to persistent storage.
+        // For performance-critical scenarios, this could be batched or debounced.
+        await this.world.persistentStorage.setPlayerVariable(
+            player,
+            GameConstants.PLAYER_DATA_PPV_KEY,
+            newPlayerData
         );
 
-//        console.log("PlayerDataManager: Ready for player management.");
+        console.log(`Updated player data for ${player.name.get()}:`, newPlayerData);
+        // Broadcast an event that player data has been updated.
+        this.sendNetworkBroadcastEvent(PlayerDataEvents.onPlayerDataUpdated, { player, playerData: newPlayerData });
     }
 
     /**
-     * Handles a player entering the world.
-     * Attempts to load their saved persistent data or creates new data if none exists.
-     * @param player The Horizon player entity that entered the world.
+     * Public method to reset a player's data to its initial state (defined in GameConstants).
+     * @param player The player whose data should be reset.
      */
-    private async handlePlayerEnter(player: hz.Player): Promise<void> {
-        // Exclude the server player from active player management, as they don't represent a human player [42, 43].
-        if (player === this.world.getServerPlayer()) {
-            return;
-        }
-
-        console.log(`PlayerDataManager: Player ${player.name.get()} (${player.id}) detected entering the world.`);
-
-        // Player Persistent Variables (PPVs) are key for saving player-local data across sessions [4, 7].
-        // Access the player's stored data using `getPlayerVariable`.
-        let playerData: IPlayerCatnipData | null =
-            this.world.persistentStorage.getPlayerVariable<IPlayerCatnipData>(
-                player,
-                `${PLAYER_DATA_VARIABLE_GROUP}:${PLAYER_CATNIP_DATA_KEY}`
-            );
-
-        let playerCatnipData: PlayerCatnipData;
-        // Check if loaded data is valid and of the expected version/kind [30-32, 44].
-        if (playerData && playerData.kind === "PlayerCatnipData" && playerData.version === 1) {
-            // If valid data exists, create a PlayerCatnipData instance from it.
-            playerCatnipData = new PlayerCatnipData(playerData);
-            console.log(`PlayerDataManager: Loaded persistent data for ${player.name.get()}: Catnip: ${playerCatnipData.getCatnip().toFixed(2)}, Fields: ${playerCatnipData.getCatnipFields()}.`);
-        } else {
-            // If no valid data or it's an old version, initialize a new PlayerCatnipData.
-            playerCatnipData = new PlayerCatnipData();
-            console.log(`PlayerDataManager: Initialized new data for first-time player ${player.name.get()}.`);
-        }
-
-        // Store the live PlayerCatnipData instance in the map for active players.
-        this.activePlayerCatnipData.set(player.id, playerCatnipData);
-    }
-
-    /**
-     * Handles a player exiting the world.
-     * Saves their current `PlayerCatnipData` to persistent storage.
-     * @param player The Horizon player entity who exited the world.
-     */
-    private handlePlayerExit(player: hz.Player): void {
-        console.log("Handing exit now...");
-
-        // Exclude the server player.
-        if (player === this.world.getServerPlayer()) {
-            return;
-        }
-
-        const playerCatnipData = this.activePlayerCatnipData.get(player.id);
-        if (playerCatnipData) {
-            // Save the player's current game data to Player Persistent Variables [7, 45, 46].
-            // The `toPersistableData()` method ensures the data is correctly formatted for saving.
-            this.world.persistentStorage.setPlayerVariable(
-                player,
-                `${PLAYER_DATA_VARIABLE_GROUP}:${PLAYER_CATNIP_DATA_KEY}`,
-                playerCatnipData.toPersistableData()
-            );
-            // Remove the player's data from the active map as they have left the instance.
-            this.activePlayerCatnipData.delete(player.id);
-            console.log(`PlayerDataManager: Saved and cleared active data for exiting player ${player.name.get()} (${player.id}).`);
-        } else {
-            console.warn(`PlayerDataManager: No active data found for exiting player ${player.name.get()} (${player.id}). This may indicate an issue if data should have been present.`);
-        }
-    }
-
-    /**
-     * Provides access to a specific player's live game data.
-     * This method is used by other game systems (like TimeManager) to get and modify player states.
-     * @param playerId The numerical ID of the player.
-     * @returns The PlayerCatnipData instance for the given player, or `undefined` if the player is not currently active.
-     */
-    public getPlayerCatnipData(playerId: number): PlayerCatnipData | undefined {
-        return this.activePlayerCatnipData.get(playerId);
+    public async resetPlayerData(player: hz.Player) {
+        const initialData: PlayerData = {
+            catnip: GameConstants.STARTING_CATNIP,
+            catnipFields: GameConstants.STARTING_CATNIP_FIELDS,
+        };
+        await this.setPlayerData(player, initialData);
+        console.log(`Reset player data for ${player.name.get()}`);
     }
 }
 
-// Register the PlayerDataManager component with the Horizon engine.
-// This allows it to be attached to an entity in the world editor.
+// Register the component so it can be attached to an entity in Horizon Worlds [15, 16].
 hz.Component.register(PlayerDataManager);

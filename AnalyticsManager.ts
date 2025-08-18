@@ -1,95 +1,94 @@
 // AnalyticsManager.ts
 import * as hz from 'horizon/core';
-import { Turbo, TurboDefaultSettings, TurboEvents, RewardsEarnedPayload, ITurboSettings, Action, EventData } from 'horizon/analytics';
+import { Turbo, ITurboSettings, TurboEvents } from 'horizon/analytics'; // Import Turbo Analytics API components [2, 27].
 
-/**
- * Manages sending custom Turbo Analytics events for the world.
- * This component should be attached to a hidden entity in the world.
- */
-export class AnalyticsManager extends hz.Component {
-    // Defines properties available in the editor for this component.
+export class AnalyticsManager extends hz.Component<typeof AnalyticsManager> {
     static propsDefinition = {
-        // Option to override debug logging for Turbo Analytics.
-        // Set this to 'true' in the editor to see detailed Turbo event logs in the console.
-        overrideDebug: { type: hz.PropTypes.Boolean, default: false },
+        // A component property to easily toggle debug logging for analytics in the editor.
+        debugAnalytics: { type: hz.PropTypes.Boolean, default: false },
     };
 
-    // Static instance for easy singleton access across other scripts.
-    // This allows other scripts to call methods on AnalyticsManager without needing to find its entity.
+    // **Singleton instance**: This static property allows other scripts to easily access this manager [1, 2].
     static s_instance: AnalyticsManager;
 
-    // References to the server player and their ID.
-    // These are often used for server-side events or when a single player represents the server's actions.
-    serverPlayer!: hz.Player;
-    serverPlayerID!: number;
-
-    // Property to store the value of 'overrideDebug' prop.
-    overrideDebug!: boolean;
+    // Prop value accessed via `this.props.debugAnalytics`.
+    debugAnalytics!: boolean;
 
     /**
-     * The start method is called once when the world begins.
-     * It initializes the Turbo Analytics system and sets up event subscriptions.
+     * `preStart()` is ideal for assigning the singleton instance to ensure it's available early.
      */
-    start() {
-        // Register this component with Turbo Analytics, using default settings.
-        // This is a mandatory step to enable the Turbo Analytics API for your world. [1, 2]
-        Turbo.register(this, TurboDefaultSettings);
-
-        // Assign this instance to the static s_instance property, making it a singleton. [2]
+    override preStart() {
         AnalyticsManager.s_instance = this;
+    }
 
-        // Initialize serverPlayer and its ID. The server player represents the world's backend. [2]
-        this.serverPlayer = this.world.getServerPlayer();
-//        this.serverPlayerID = this.serverPlayer.id.get();
+    override start() {
+        console.log("AnalyticsManager started.");
 
-        // If 'overrideDebug' is set to true in the editor, enable Turbo's internal debug logging.
-        // This will print detailed Turbo event information to your console. [4]
-        if (this.overrideDebug) {
-            // Turbo.setDebug(true); // While 'setDebug' is not explicitly in sources, its presence is implied by debug event.
-            this.subscribeToEvents();
+        // Configure basic Turbo Analytics settings [1].
+        const turboSettings: ITurboSettings = {
+            useAFK: false,      // Do not track Away from Keyboard status for this game.
+            useFriction: false, // Do not track friction events.
+            useHeartBeats: true, // Send periodic heartbeats to track player presence in the world [1].
+            // Other settings could be added here for more advanced analytics needs.
+        };
+
+        // Register this component with the Turbo Analytics system [1, 27].
+        Turbo.register(this, turboSettings);
+
+        // If the `debugAnalytics` prop is enabled, log a message to the console.
+        if (this.debugAnalytics) {
+            console.log("AnalyticsManager: Debugging Turbo Analytics is ENABLED. Events will be logged to console.");
         }
     }
 
     /**
-     * Subscribes to debug events for Turbo Analytics.
-     * This method can be expanded to include other event subscriptions if needed for more complex analytics.
+     * Public method to send a custom analytics event to Horizon's Turbo Analytics.
+     * This provides a unified interface for other scripts to log game-specific events.
+     * @param player The player associated with the event.
+     * @param eventName A string name for the custom event (e.g., "catnip_field_purchased").
+     * @param payload An object containing event-specific data (must be SerializableState).
      */
-    private subscribeToEvents() {
-        // Connect to the OnDebugTurboPlayerEvent. This built-in event is triggered by Turbo
-        // when an analytics event is sent, allowing you to log it for verification.
-//        this.connectLocalBroadcastEvent(TurboEvents.OnDebugTurboPlayerEvent, this.onDebugTurboPlayerEvent.bind(this));
-    }
+    public sendCustomAnalyticsEvent(player: hz.Player, eventName: string, payload: Record<string, any>) {
+        // Basic check to ensure Turbo Analytics is initialized.
+        if (!Turbo) {
+            console.error("AnalyticsManager: Turbo Analytics is not initialized. Cannot send event.");
+            return;
+        }
 
-    /**
-     * Sends a custom RewardsEarned event specifically for catnip fields acquired by a player.
-     * This method is public so it can be called from other game logic scripts.
-     * @param player The Horizon Worlds Player object who acquired the catnip fields.
-     * @param quantity The number of catnip fields acquired in this specific transaction.
-     */
-    public sendCatnipFieldsAcquired(player: hz.Player, quantity: number): void {
-        const payload: RewardsEarnedPayload = {
-            player: player, // The Player object associated with the reward.
-            rewardsType: "CatnipFields", // A custom string to define the type of reward earned. This will appear in your Insights dashboard. [3]
-            rewardsEarned: quantity // The numerical quantity of this reward.
+        // Augment the payload with common player information.
+        const fullPayload = {
+            playerID: player.id,
+            playerName: player.name.get(),
+            ...payload // Spread the provided payload data.
         };
 
-        // Send the event using the Turbo.send() method. [1, 3, 6]
-        Turbo.send(TurboEvents.OnRewardsEarned, payload);
-        console.log(`[AnalyticsManager] Sent RewardsEarned event: Player ${player.name.get()} acquired ${quantity} CatnipFields.`);
+        try {
+            // Send the event using `Turbo.send()`. `eventName` can be a custom string [27].
+            Turbo.send(eventName, fullPayload);
+            if (this.debugAnalytics) {
+                console.log(`AnalyticsManager: Sent custom event '${eventName}' for ${player.name.get()} with payload:`, fullPayload);
+            }
+        } catch (error) {
+            console.error(`AnalyticsManager: Failed to send event '${eventName}':`, error);
+        }
     }
 
     /**
-     * Debugging method to log Turbo Player events to the console.
-     * This function is connected to `TurboEvents.OnDebugTurboPlayerEvent` when debugging is enabled.
-     * @param _player The player involved in the debug event.
-     * @param _eventData Additional data related to the event.
-     * @param _action The type of action performed.
+     * Specific helper method for logging an item purchase event.
+     * This provides a clear, type-safe way for `CatnipFieldInteraction` to report purchases.
+     * @param player The player who made the purchase.
+     * @param itemSKU A string identifier for the purchased item (e.g., "catnip_field").
+     * @param price The price paid for the item.
+     * @param quantity The quantity of the item purchased.
      */
-    public onDebugTurboPlayerEvent(_player: hz.Player, _eventData: EventData, _action: Action): void {
-        console.log(`\n TURBO: Debugging Turbo Player Event: ${_player.name.get()}: ${Action[_action].toString()}`); [4]
+    public sendItemPurchasedEvent(player: hz.Player, itemSKU: string, price: number, quantity: number) {
+        this.sendCustomAnalyticsEvent(player, "item_purchased", {
+            item_sku: itemSKU,
+            price_paid: price,
+            quantity: quantity,
+            // Additional context like "game_version", "world_id" could be added here.
+        });
     }
 }
 
-// Register the AnalyticsManager component. This makes it available in the Horizon Worlds editor's
-// Properties panel to be attached to an entity. [2]
 hz.Component.register(AnalyticsManager);
