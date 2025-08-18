@@ -1,6 +1,6 @@
 // AnalyticsManager.ts
 import * as hz from 'horizon/core';
-import { Turbo, ITurboSettings, TurboEvents, TurboDefaultSettings } from 'horizon/analytics'; // Import Turbo Analytics API components [2, 27].
+import { Turbo, ITurboSettings, TurboEvents, CustomActionData, TurboDefaultSettings } from 'horizon/analytics'; // Import Turbo Analytics API components [2, 27].
 
 export class AnalyticsManager extends hz.Component<typeof AnalyticsManager> {
     static propsDefinition = {
@@ -49,6 +49,7 @@ export class AnalyticsManager extends hz.Component<typeof AnalyticsManager> {
      * @param eventName A string name for the custom event (e.g., "catnip_field_purchased").
      * @param payload An object containing event-specific data (must be SerializableState).
      */
+/*    
     public sendCustomAnalyticsEvent(player: hz.Player, eventName: string, payload: Record<string, any>) {
         // Basic check to ensure Turbo Analytics is initialized.
         if (!Turbo) {
@@ -65,7 +66,7 @@ export class AnalyticsManager extends hz.Component<typeof AnalyticsManager> {
 
         try {
             // Send the event using `Turbo.send()`. `eventName` can be a custom string [27].
-            Turbo.send(eventName, fullPayload);
+            Turbo.send(TurboEvents.OnCustomAction, fullPayload);
             if (this.debugAnalytics) {
                 console.log(`AnalyticsManager: Sent custom event '${eventName}' for ${player.name.get()} with payload:`, fullPayload);
             }
@@ -73,7 +74,7 @@ export class AnalyticsManager extends hz.Component<typeof AnalyticsManager> {
             console.error(`AnalyticsManager: Failed to send event '${eventName}':`, error);
         }
     }
-
+*/
     /**
      * Specific helper method for logging an item purchase event.
      * This provides a clear, type-safe way for `CatnipFieldInteraction` to report purchases.
@@ -83,12 +84,20 @@ export class AnalyticsManager extends hz.Component<typeof AnalyticsManager> {
      * @param quantity The quantity of the item purchased.
      */
     public sendItemPurchasedEvent(player: hz.Player, itemSKU: string, price: number, quantity: number) {
-        this.sendCustomAnalyticsEvent(player, "item_purchased", {
-            item_sku: itemSKU,
-            price_paid: price,
-            quantity: quantity,
-            // Additional context like "game_version", "world_id" could be added here.
-        });
+        const payload = {
+            player: player,
+            rewardsType: itemSKU,
+            rewardsEarned: quantity,
+        };
+        try {
+            // Send the event using `Turbo.send()`. `eventName` can be a custom string [27].
+            Turbo.send(TurboEvents.OnRewardsEarned, payload);
+            if (this.debugAnalytics) {
+                console.log(`AnalyticsManager: Sent custom event OnRewardsEarned for ${player.name.get()} with payload:`, payload);
+            }
+        } catch (error) {
+            console.error(`AnalyticsManager: Failed to send OnRewardsEarned':`, error);
+        }
     }
 }
 
