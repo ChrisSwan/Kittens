@@ -1,6 +1,6 @@
 // AnalyticsManager.ts
 import * as hz from 'horizon/core';
-import { Turbo, ITurboSettings, TurboEvents } from 'horizon/analytics'; // Import Turbo Analytics API components [2, 27].
+import { Turbo, ITurboSettings, TurboEvents, TurboDefaultSettings } from 'horizon/analytics'; // Import Turbo Analytics API components [2, 27].
 
 export class AnalyticsManager extends hz.Component<typeof AnalyticsManager> {
     static propsDefinition = {
@@ -26,6 +26,7 @@ export class AnalyticsManager extends hz.Component<typeof AnalyticsManager> {
 
         // Configure basic Turbo Analytics settings [1].
         const turboSettings: ITurboSettings = {
+            ...TurboDefaultSettings,
             useAFK: false,      // Do not track Away from Keyboard status for this game.
             useFriction: false, // Do not track friction events.
             useHeartbeats: false, // Send periodic heartbeats to track player presence in the world [1].
