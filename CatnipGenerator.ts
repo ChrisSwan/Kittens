@@ -58,6 +58,8 @@ export class CatnipGenerator extends hz.Component<typeof CatnipGenerator> {
                 const newCatnip = playerData.catnip + catnipGenerated;
                 playerData.catnip = newCatnip;
 
+                console.log(`New catnip amount = ${newCatnip}`);
+
                 // Save the updated player data back through the PlayerDataManager.
                 await PlayerDataManager.s_instance.setPlayerData(player, playerData);
                 // console.log(`${player.name.get()} gained ${catnipGenerated} catnip. Total: ${newCatnip}`); // Uncomment for detailed logging during development.
