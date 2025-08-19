@@ -63,8 +63,9 @@ export class PlayerDataManager extends hz.Component<typeof PlayerDataManager> {
                 GameConstants.PLAYER_DATA_PPV_KEY
             );
 
-        if (playerData === null) {
-            // If no persistent data exists, initialize a new PlayerData object.
+//        if (playerData === null || playerData === undefined) {
+        if (!playerData) {
+                // If no persistent data exists, initialize a new PlayerData object.
             playerData = {
                 catnip: GameConstants.STARTING_CATNIP,
                 catnipFields: GameConstants.STARTING_CATNIP_FIELDS,
@@ -135,7 +136,7 @@ export class PlayerDataManager extends hz.Component<typeof PlayerDataManager> {
             newPlayerData
         );
 
-        console.log(`Updated player data for ${player.name.get()}:`, newPlayerData);
+//        console.log(`Updated player data for ${player.name.get()}:`, newPlayerData);
         // Broadcast an event that player data has been updated.
         this.sendNetworkBroadcastEvent(PlayerDataEvents.onPlayerDataUpdated, { player, playerData: newPlayerData });
     }

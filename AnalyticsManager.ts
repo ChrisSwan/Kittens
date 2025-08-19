@@ -24,6 +24,8 @@ export class AnalyticsManager extends hz.Component<typeof AnalyticsManager> {
     override start() {
         console.log("AnalyticsManager started.");
 
+        this.debugAnalytics = true;
+
         // Configure basic Turbo Analytics settings [1].
         const turboSettings: ITurboSettings = {
             ...TurboDefaultSettings,
@@ -84,6 +86,7 @@ export class AnalyticsManager extends hz.Component<typeof AnalyticsManager> {
      * @param quantity The quantity of the item purchased.
      */
     public sendItemPurchasedEvent(player: hz.Player, itemSKU: string, price: number, quantity: number) {
+        console.log("Got here 1");
         const payload = {
             player: player,
             rewardsType: itemSKU,

@@ -44,10 +44,11 @@ export class CatnipFieldInteraction extends hz.Component<typeof CatnipFieldInter
             return;
         }
 
-        // Check if the player has enough catnip to afford a catnip field.
-        if (playerData.catnip >= GameConstants.CATNIP_FIELD_COST) {
+        // Check if the player has enough catnip to afford a catnip field. the cost is increased by PRICE_RATIO % for each field already owned
+        let currentFieldCost = GameConstants.CATNIP_FIELD_COST * (1 + (playerData.catnipFields * GameConstants.CATNIP_FIELD_PRICE_RATIO))
+        if (playerData.catnip >= currentFieldCost) {
             // Deduct the cost from the player's catnip.
-            playerData.catnip -= GameConstants.CATNIP_FIELD_COST;
+            playerData.catnip -= currentFieldCost;
             // Increment the number of catnip fields owned by the player [Outline].
             playerData.catnipFields += 1;
 
@@ -65,6 +66,9 @@ export class CatnipFieldInteraction extends hz.Component<typeof CatnipFieldInter
                     1 // Quantity purchased.
                 );
             }
+            else {
+                console.log("ERROR: Analytics instance not found!");
+            }
 
             // Provide visual feedback to the player using a popup message [25, 26].
             this.world.ui.showPopupForPlayer(player, `Purchased Catnip Field! You now have ${playerData.catnipFields}.`, 3000);
@@ -77,7 +81,7 @@ export class CatnipFieldInteraction extends hz.Component<typeof CatnipFieldInter
         } else {
             console.log(`${player.name.get()} tried to buy a catnip field but doesn't have enough catnip (has ${playerData.catnip}, needs ${GameConstants.CATNIP_FIELD_COST}).`);
             // Inform the player they don't have enough catnip.
-            this.world.ui.showPopupForPlayer(player, `Need ${GameConstants.CATNIP_FIELD_COST} Catnip to buy! You have ${playerData.catnip}.`, 3000);
+            this.world.ui.showPopupForPlayer(player, `Need ${currentFieldCost.toPrecision(2)} Catnip to buy! You have ${playerData.catnip.toPrecision(2)}.`, 3000);
         }
     }
 }
