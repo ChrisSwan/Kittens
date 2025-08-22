@@ -6,7 +6,6 @@
 // Import interfaces for all managers you wish to make globally accessible.
 // These examples are drawn from the "Crystal Conveyor Tycoon" source [10, 27].
 /*
-import { IPlayerManager } from "IPlayerManager";
 import { ITemplateManager } from "ITemplateManager";
 import { IAudioManager } from "IAudioManager";
 import { IButtonManager } from "IButtonManager";
@@ -21,7 +20,7 @@ import { IPvEInfoPanel } from "IPvEInfoPanel";
 import { ITycoonSaveManager } from "ITycoonSaveManager";
 import { ISpawnManager } from "ISpawnManager"; // Added for completeness based on sources
 */
-// --- NEW: Import our TimeManager interface ---
+import { IPlayerManager } from "IPlayerManager";
 import { ITimeManager } from "ITimeManager"; // Important for our TimeManager
 
 // Declare 'late-initialized' variables for each manager interface.
@@ -29,7 +28,6 @@ import { ITimeManager } from "ITimeManager"; // Important for our TimeManager
 // will definitely be assigned a concrete instance before they are used at runtime.
 // This is a common practice for Service Locator patterns in TypeScript.
 /*
-let playerManager!: IPlayerManager;
 let templateManager!: ITemplateManager;
 let audioManager!: IAudioManager;
 let buttonManager!: IButtonManager;
@@ -45,7 +43,7 @@ let tycoonSaveManager!: ITycoonSaveManager;
 let spawnManager!: ISpawnManager;
 */
 
-// --- NEW: Declare our TimeManager instance ---
+let playerManager!: IPlayerManager;
 let timeManager!: ITimeManager;
 
 // Export a constant object that provides a single point of access to all manager instances.
@@ -53,7 +51,6 @@ let timeManager!: ITimeManager;
 // `ServiceLocator_Data.timeManager.startTimer();`
 export const ServiceLocator_Data = {
 /*  
-    playerManager,
     templateManager,
     audioManager,
     buttonManager,
@@ -68,6 +65,6 @@ export const ServiceLocator_Data = {
     tycoonSaveManager,
     spawnManager,
 */
-    // --- NEW: Add our TimeManager to the locator ---
+    playerManager,
     timeManager,
 };
