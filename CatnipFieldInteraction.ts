@@ -1,7 +1,7 @@
 // CatnipFieldInteraction.ts
 import * as hz from 'horizon/core';
 import { GameConstants, PlayerData } from 'GameConstants';
-import { PlayerDataManager } from 'PlayerDataManager';
+import { PlayerDataManager, PlayerDataEvents } from 'PlayerDataManager';
 import { AnalyticsManager } from 'AnalyticsManager'; // Import AnalyticsManager for logging purchase events.
 
 export class CatnipFieldInteraction extends hz.Component<typeof CatnipFieldInteraction> {
@@ -9,13 +9,32 @@ export class CatnipFieldInteraction extends hz.Component<typeof CatnipFieldInter
         purchasePlatformMesh: { type: hz.PropTypes.Entity },
     }; // This component doesn't require specific properties.
 
+    private purchasePlatform!: hz.MeshEntity; // A typed reference to the actual MeshEntity for direct manipulation.
+
     override preStart() {
+        // Validates that the 'purchasePlatformMesh' property is set and stores a typed reference to it.
+        // If not set, a warning is logged as visual feedback will not function.
+        if (this.props.purchasePlatformMesh) {
+            this.purchasePlatform = this.props.purchasePlatformMesh.as(hz.MeshEntity);
+        } else {
+            console.error("CatnipFieldInteraction: Missing 'purchasePlatformMesh' property. Platform color changes will not work.");
+        }
         // Connect to the `OnPlayerEnterTrigger` event for the entity this script is attached to [23, 24].
         // This means the entity needs to have a `Trigger Gizmo` attached and configured.
         this.connectCodeBlockEvent(
             this.entity,
             hz.CodeBlockEvents.OnPlayerEnterTrigger,
             this.handlePlayerEnterTrigger.bind(this) // Bind 'this' to maintain context within the callback.
+        );
+
+        // Subscribes to the `onPlayerDataUpdated` network event broadcast by `PlayerDataManager` [19].
+        // This allows the purchase platform's visual state to update in real-time as a player's catnip or fields change [20].
+        this.connectNetworkBroadcastEvent(
+            PlayerDataEvents.onPlayerDataUpdated,
+            (data: { player: hz.Player, playerData: PlayerData }) => {
+//                this.updatePurchasePlatformColor(data.player, data.playerData);
+                this.updatePurchasePlatformColor(data);
+            }
         );
     }
 
@@ -86,10 +105,10 @@ export class CatnipFieldInteraction extends hz.Component<typeof CatnipFieldInter
             this.world.ui.showPopupForPlayer(player, `Need ${currentFieldCost.toPrecision(2)} Catnip to buy! You have ${playerData.catnip.toPrecision(2)}.`, 3000);
         }
         // Always update color after interaction, even if purchase fails.
-        this.updatePlatformColor({ player, playerData });    
+//        this.updatePurchasePlatformColor({ player, playerData });    
     }
 
-    private updatePlatformColor(data: { player: hz.Player, playerData: PlayerData }) {
+    private updatePurchasePlatformColor(data: { player: hz.Player, playerData: PlayerData }) {
         if (!this.props.purchasePlatformMesh || !this.props.purchasePlatformMesh.exists()) {
             console.warn("CatnipFieldInteraction: purchasePlatformMesh prop is not set or does not exist.");
             return;

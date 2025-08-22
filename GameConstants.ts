@@ -3,6 +3,12 @@
 import * as hz from 'horizon/core';
 
 export const GameConstants = {
+    // The duration of one game "tick" in milliseconds.
+    TICK_DURATION_MS: 200,
+    // The number of game "ticks" that constitute one game "day".
+    TICKS_PER_DAY: 10,
+    SECONDS_PER_DAY: 2,
+    
     // Initial player resources
     STARTING_CATNIP: 0, // The amount of catnip a new player starts with.
     STARTING_CATNIP_FIELDS: 0, // The number of catnip fields a new player starts with.
