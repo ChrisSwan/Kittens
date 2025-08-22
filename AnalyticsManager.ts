@@ -32,7 +32,6 @@ export class AnalyticsManager extends hz.Component<typeof AnalyticsManager> {
             useAFK: false,      // Do not track Away from Keyboard status for this game.
             useFriction: false, // Do not track friction events.
             useHeartbeats: false, // Send periodic heartbeats to track player presence in the world [1].
-            // Other settings could be added here for more advanced analytics needs.
         };
 
         // Register this component with the Turbo Analytics system [1, 27].
@@ -86,7 +85,6 @@ export class AnalyticsManager extends hz.Component<typeof AnalyticsManager> {
      * @param quantity The quantity of the item purchased.
      */
     public sendItemPurchasedEvent(player: hz.Player, itemSKU: string, price: number, quantity: number) {
-        console.log("Got here 1");
         const payload = {
             player: player,
             rewardsType: itemSKU,

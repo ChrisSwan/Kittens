@@ -5,7 +5,9 @@ import { PlayerDataManager } from 'PlayerDataManager';
 import { AnalyticsManager } from 'AnalyticsManager'; // Import AnalyticsManager for logging purchase events.
 
 export class CatnipFieldInteraction extends hz.Component<typeof CatnipFieldInteraction> {
-    static propsDefinition = {}; // This component doesn't require specific properties.
+    static propsDefinition = {
+        purchasePlatformMesh: { type: hz.PropTypes.Entity },
+    }; // This component doesn't require specific properties.
 
     override preStart() {
         // Connect to the `OnPlayerEnterTrigger` event for the entity this script is attached to [23, 24].
@@ -83,7 +85,34 @@ export class CatnipFieldInteraction extends hz.Component<typeof CatnipFieldInter
             // Inform the player they don't have enough catnip.
             this.world.ui.showPopupForPlayer(player, `Need ${currentFieldCost.toPrecision(2)} Catnip to buy! You have ${playerData.catnip.toPrecision(2)}.`, 3000);
         }
+        // Always update color after interaction, even if purchase fails.
+        this.updatePlatformColor({ player, playerData });    
     }
+
+    private updatePlatformColor(data: { player: hz.Player, playerData: PlayerData }) {
+        if (!this.props.purchasePlatformMesh || !this.props.purchasePlatformMesh.exists()) {
+            console.warn("CatnipFieldInteraction: purchasePlatformMesh prop is not set or does not exist.");
+            return;
+        }
+
+        /* This code fails, but tbf we don't need this check, as we're fine for the colour to be visible to all players
+        const localPlayer = this.world.getLocalPlayer();
+        if (!localPlayer || localPlayer.id !== data.player.id) {
+            // If the local player isn't the one whose data updated, skip.
+            // In a live environment, this event is broadcast, so we should filter.
+            return;
+        }
+        */
+
+        const meshEntity = this.props.purchasePlatformMesh.as(hz.MeshEntity);
+        if (!meshEntity) return;
+
+        const currentCost = GameConstants.CATNIP_FIELD_COST * (1 + data.playerData.catnipFields * GameConstants.CATNIP_FIELD_PRICE_RATIO);
+        const canAfford = data.playerData.catnip >= currentCost;
+
+        meshEntity.style.tintColor.set(canAfford ? GameConstants.GREEN_COLOR : GameConstants.RED_COLOR);
+    }
+   
 }
 
 hz.Component.register(CatnipFieldInteraction);

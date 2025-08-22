@@ -1,5 +1,6 @@
 // GameConstants.ts
-// Centralized repository for static, immutable game values.
+// Centralizd repository for static, immutable game values.
+import * as hz from 'horizon/core';
 
 export const GameConstants = {
     // Initial player resources
@@ -11,6 +12,9 @@ export const GameConstants = {
     CATNIP_FIELD_PRICE_RATIO: 0.12, // The amount that a field increases in price per purchase
     BASE_CATNIP_PER_SECOND: 1, // The base amount of catnip generated per second for each player.
     CATNIP_PER_FIELD_PER_SECOND: 0.125, // The additional catnip generated per second for each purchased catnip field.
+
+    GREEN_COLOR: new hz.Color(0.17, 0.93, 0.17), // Example green color for affordable [18]
+    RED_COLOR: new hz.Color(1, 0.1, 0.1),       // Example red color for unaffordable [18]
 
     // Persistence variable key
     PLAYER_DATA_PPV_KEY: "KittensGame:playerData", // Unique key for the Player Persistent Variable (PPV) storing player progress.
