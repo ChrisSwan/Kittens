@@ -7,9 +7,11 @@ import { AnalyticsManager } from 'AnalyticsManager'; // Import AnalyticsManager 
 export class CatnipFieldInteraction extends hz.Component<typeof CatnipFieldInteraction> {
     static propsDefinition = {
         purchasePlatformMesh: { type: hz.PropTypes.Entity },
+        catnipPurchaseText: { type: hz.PropTypes.Entity},
     }; // This component doesn't require specific properties.
 
     private purchasePlatform!: hz.MeshEntity; // A typed reference to the actual MeshEntity for direct manipulation.
+    private purchaseText! : hz.TextGizmo;
 
     override preStart() {
         // Validates that the 'purchasePlatformMesh' property is set and stores a typed reference to it.
@@ -19,7 +21,12 @@ export class CatnipFieldInteraction extends hz.Component<typeof CatnipFieldInter
         } else {
             console.error("CatnipFieldInteraction: Missing 'purchasePlatformMesh' property. Platform color changes will not work.");
         }
-        // Connect to the `OnPlayerEnterTrigger` event for the entity this script is attached to [23, 24].
+        if (this.props.catnipPurchaseText) {
+            this.purchaseText = this.props.catnipPurchaseText.as(hz.TextGizmo);
+        } else {
+            console.error("CatnipFieldInteraction: Missing 'purchaseFieldText' property. Cannot display text needed.");
+        }
+        // Connect to the `OnPlayerEnterTrigger` event for the entity this script is attached to.
         // This means the entity needs to have a `Trigger Gizmo` attached and configured.
         this.connectCodeBlockEvent(
             this.entity,
@@ -123,13 +130,18 @@ export class CatnipFieldInteraction extends hz.Component<typeof CatnipFieldInter
         }
         */
 
-        const meshEntity = this.props.purchasePlatformMesh.as(hz.MeshEntity);
-        if (!meshEntity) return;
+//        const meshEntity = this.props.purchasePlatformMesh.as(hz.MeshEntity);
+//        if (!meshEntity) return;
 
         const currentCost = GameConstants.CATNIP_FIELD_COST * (1 + data.playerData.catnipFields * GameConstants.CATNIP_FIELD_PRICE_RATIO);
         const canAfford = data.playerData.catnip >= currentCost;
 
-        meshEntity.style.tintColor.set(canAfford ? GameConstants.GREEN_COLOR : GameConstants.RED_COLOR);
+//        meshEntity.style.tintColor.set(canAfford ? GameConstants.GREEN_COLOR : GameConstants.RED_COLOR);
+        this.purchasePlatform.style.tintColor.set(canAfford ? GameConstants.GREEN_COLOR : GameConstants.RED_COLOR);
+
+        const newText = `${currentCost}<br>catnip<br>needed`;
+        this.purchaseText.text.set(newText);
+
     }
    
 }

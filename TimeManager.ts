@@ -14,37 +14,35 @@ export class TimeManager extends hz.Component<typeof TimeManager> implements ITi
     // Other components will subscribe to these events to perform actions synchronized with game time.
     public onTickEvent = new hz.LocalEvent<{ tickNumber: number }>('onTickEvent');
     public onDayEvent = new hz.LocalEvent<{ dayNumber: number }>('onDayEvent');
-//    public onTickEvent = new hz.LocalEvent<{ tickNumber: number }>('onTickEvent');
-//    public onDayEvent = new hz.LocalEvent<{ dayNumber: number }>('onDayEvent');
 
     private currentTick: number = 0; // Tracks the current game tick number.
     private currentDay: number = 0;  // Tracks the current game day number.
     private timerIntervalId: number = -1; // Stores the interval ID to manage starting and stopping the timer.
 
     /**
-     * The `preStart()` method is guaranteed to run for all components before any `start()` methods are called [6, 7].
+     * The `preStart()` method is guaranteed to run for all components before any `start()` methods are called.
      * This ensures the `TimeManager` is registered and available for other components that might need it early.
      */
     override preStart(): void {
-        // Registers this instance with the global ServiceLocator_Data for easy access by other scripts [8].
+        // Registers this instance with the global ServiceLocator_Data for easy access by other scripts.
         ServiceLocator_Data.timeManager = this as ITimeManager;
         console.log("TimeManager preStart: Registered with ServiceLocator_Data.");
     }
 
     override start(): void {
         console.log("TimeManager started.");
-        // Automatically starts the game timer when the world begins running its scripts [9, 10].
+        // Automatically starts the game timer when the world begins running its scripts.
         this.startTimer();
     }
 
     override dispose(): void {
-        // Cleans up the interval timer when the component is disposed to prevent memory leaks [9].
+        // Cleans up the interval timer when the component is disposed to prevent memory leaks.
         this.stopTimer();
     }
 
     /**
      * Starts the internal game timer, which periodically increments the tick count
-     * and broadcasts `onTickEvent` and `onDayEvent` at the defined intervals [2, 3].
+     * and broadcasts `onTickEvent` and `onDayEvent` at the defined intervals.
      */
     public startTimer(): void {
         if (this.timerIntervalId !== -1) {
@@ -53,14 +51,14 @@ export class TimeManager extends hz.Component<typeof TimeManager> implements ITi
         }
 
         console.log("TimeManager: Starting timer.");
-        // `async.setInterval` is used for recurring time-based operations in Horizon Worlds [9, 11].
+        // `async.setInterval` is used for recurring time-based operations in Horizon Worlds.
         this.timerIntervalId = this.async.setInterval(() => {
             this.currentTick++;
 
             // Broadcast the current tick number for any subscribed components.
             this.sendLocalBroadcastEvent(this.onTickEvent, {tickNumber: this.currentTick});
 
-            // Checks if a new game day has commenced based on `TICKS_PER_DAY` [3].
+            // Checks if a new game day has commenced based on `TICKS_PER_DAY`.
             if (this.currentTick % GameConstants.TICKS_PER_DAY === 0) {
                 this.currentDay++;
 //                console.log(`TimeManager: Day ${this.currentDay} started.`);
@@ -71,7 +69,7 @@ export class TimeManager extends hz.Component<typeof TimeManager> implements ITi
             // Optional: Uncomment for granular tick-by-tick debugging messages.
             // console.log(`TimeManager: Tick ${this.currentTick}`);
 
-        }, GameConstants.TICK_DURATION_MS); // The interval duration is set by `TICK_DURATION_MS` from `GameConstants` [3].
+        }, GameConstants.TICK_DURATION_MS); // The interval duration is set by `TICK_DURATION_MS` from `GameConstants`.
     }
 
     /**
@@ -86,5 +84,5 @@ export class TimeManager extends hz.Component<typeof TimeManager> implements ITi
     }
 }
 
-// Registers the component with the Horizon Worlds engine, making it available to attach to an entity [12, 13].
+// Registers the component with the Horizon Worlds engine, making it available to attach to an entity.
 hz.Component.register(TimeManager);
