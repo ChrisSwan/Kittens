@@ -141,6 +141,7 @@ export class CatnipFieldInteraction extends hz.Component<typeof CatnipFieldInter
 
         const newText = `${currentCost}<br>catnip<br>needed`;
         this.purchaseText.text.set(newText);
+        console.log(`text updated to: ${newText}`);
 
     }
    

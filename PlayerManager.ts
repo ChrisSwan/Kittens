@@ -1,5 +1,4 @@
 import * as hz from 'horizon/core';
-//import { Component, CodeBlockEvents, Player, PropTypes, Entity, PlayerDeviceType, SpawnPointGizmo, FocusedInteraction, Color } from "horizon/core";
 import { IPlayerManager } from 'IPlayerManager';
 
 export class PlayerManager extends hz.Component<typeof PlayerManager> implements IPlayerManager {
@@ -13,6 +12,7 @@ export class PlayerManager extends hz.Component<typeof PlayerManager> implements
   mainPlayerUIs: hz.Entity[] = [];
 
   preStart(): void {
+    // Assign the UIs from the prop types
     if (this.props.MainPlayerUI1 && this.props.MainPlayerUI2 && this.props.MainPlayerUI3 && this.props.MainPlayerUI4) {
       this.mainPlayerUIs = [this.props.MainPlayerUI1, this.props.MainPlayerUI2, this.props.MainPlayerUI3, this.props.MainPlayerUI4];
     }    
