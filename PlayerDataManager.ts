@@ -1,5 +1,7 @@
 import * as hz from 'horizon/core';
 import { GameConstants, PlayerData } from 'GameConstants'; // Import constants and PlayerData type
+import { ServiceLocator_Data } from 'ServiceLocator_Data';
+import { IPlayerDataManager } from 'IPlayerDataManager';
 
 // Define NetworkEvents for player data changes.
 // These events allow other scripts (especially client-side ones if implemented in future versions)
@@ -9,7 +11,7 @@ export const PlayerDataEvents = {
     onPlayerDataUpdated: new hz.NetworkEvent<{ player: hz.Player, playerData: PlayerData }>('onPlayerDataUpdated'),
 };
 
-export class PlayerDataManager extends hz.Component<typeof PlayerDataManager> {
+export class PlayerDataManager extends hz.Component<typeof PlayerDataManager> implements IPlayerDataManager {
     static propsDefinition = {};
 
     // **Singleton instance**: This static property provides easy access to this manager from other scripts.
@@ -27,6 +29,7 @@ export class PlayerDataManager extends hz.Component<typeof PlayerDataManager> {
     override preStart() {
         // Assign the singleton instance upon initialization.
         PlayerDataManager.s_instance = this;
+        ServiceLocator_Data.playerDataManager = this;
 
         // Listen for players entering the world to load their saved data.
         // `OnPlayerEnterWorld` is a built-in CodeBlockEvent sent to server-owned entities [3, 6].
@@ -43,6 +46,7 @@ export class PlayerDataManager extends hz.Component<typeof PlayerDataManager> {
             hz.CodeBlockEvents.OnPlayerExitWorld,
             this.handlePlayerExitWorld.bind(this)
         );
+        console.log("PlayerDataManager Prestart complete.");
     }
 
     override start() {

@@ -50,7 +50,7 @@ export class CatnipGenerator extends hz.Component<typeof CatnipGenerator> {
             await PlayerDataManager.s_instance.setPlayerData(player, playerData);
 
             // Optional: Uncomment for debugging output of each player's catnip total.
-            console.log(`CatnipGenerator: ${player.name.get()} now has ${playerData.catnip.toFixed(2)} catnip.`);
+//            console.log(`CatnipGenerator: ${player.name.get()} now has ${playerData.catnip.toFixed(2)} catnip.`);
         }
     }
 }

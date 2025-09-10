@@ -1,8 +1,10 @@
 // AnalyticsManager.ts
 import * as hz from 'horizon/core';
 import { Turbo, ITurboSettings, TurboEvents, CustomActionData, TurboDefaultSettings } from 'horizon/analytics'; // Import Turbo Analytics API components [2, 27].
+import { IAnalyticsManager } from 'IAnalyticsManager';
+import { ServiceLocator_Data } from 'ServiceLocator_Data';
 
-export class AnalyticsManager extends hz.Component<typeof AnalyticsManager> {
+export class AnalyticsManager extends hz.Component<typeof AnalyticsManager> implements IAnalyticsManager{
     static propsDefinition = {
         // A component property to easily toggle debug logging for analytics in the editor.
         debugAnalytics: { type: hz.PropTypes.Boolean, default: false },
@@ -19,6 +21,7 @@ export class AnalyticsManager extends hz.Component<typeof AnalyticsManager> {
      */
     override preStart() {
         AnalyticsManager.s_instance = this;
+        ServiceLocator_Data.analyticsManager = this;        
     }
 
     override start() {

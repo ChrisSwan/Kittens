@@ -1,35 +1,54 @@
 // CatnipFieldInteraction.ts
 import * as hz from 'horizon/core';
 import { GameConstants, PlayerData } from 'GameConstants';
-import { PlayerDataManager, PlayerDataEvents } from 'PlayerDataManager';
-import { AnalyticsManager } from 'AnalyticsManager'; // Import AnalyticsManager for logging purchase events.
+//import { IPlayerDataManager } from 'IPlayerDataManager';
+//import { IAnalyticsManager } from 'IAnalyticsManager';
+//import { ServiceLocator_Data } from 'ServiceLocator_Data';
+import { PlayerDataEvents } from 'PlayerDataManager';
+import { CatnipGameEvents } from 'Events';
 
 export class CatnipFieldInteraction extends hz.Component<typeof CatnipFieldInteraction> {
     static propsDefinition = {
         purchasePlatformMesh: { type: hz.PropTypes.Entity },
         catnipPurchaseText: { type: hz.PropTypes.Entity},
+        purchaseTriggerBox: { type: hz.PropTypes.Entity },
+        playerManagerEntity: { type: hz.PropTypes.Entity },
     }; // This component doesn't require specific properties.
 
     private purchasePlatform!: hz.MeshEntity; // A typed reference to the actual MeshEntity for direct manipulation.
     private purchaseText! : hz.TextGizmo;
+    private _purchaseTriggerBox! : hz.TriggerGizmo;
+    private _playerManagerEntity!: hz.Entity;
 
     override preStart() {
         // Validates that the 'purchasePlatformMesh' property is set and stores a typed reference to it.
         // If not set, a warning is logged as visual feedback will not function.
         if (this.props.purchasePlatformMesh) {
             this.purchasePlatform = this.props.purchasePlatformMesh.as(hz.MeshEntity);
+            this.purchasePlatform.visible.set(true);
         } else {
             console.error("CatnipFieldInteraction: Missing 'purchasePlatformMesh' property. Platform color changes will not work.");
         }
         if (this.props.catnipPurchaseText) {
             this.purchaseText = this.props.catnipPurchaseText.as(hz.TextGizmo);
+            this.purchaseText.visible.set(true);
         } else {
             console.error("CatnipFieldInteraction: Missing 'purchaseFieldText' property. Cannot display text needed.");
         }
+        if (this.props.purchaseTriggerBox) {
+            this._purchaseTriggerBox = this.props.purchaseTriggerBox.as(hz.TriggerGizmo);
+        } else {
+            console.error("CatnipFieldInteraction: Missing 'purchaseTriggerBox' property. Cannot display text needed.");
+        }
+        if (this.props.playerManagerEntity) {
+            this._playerManagerEntity = this.props.playerManagerEntity;
+        } else {
+            console.error("CatnipFieldInteraction: Missing 'playerManagerEntity' property. Cannot send purchase requests.");
+        }        
         // Connect to the `OnPlayerEnterTrigger` event for the entity this script is attached to.
         // This means the entity needs to have a `Trigger Gizmo` attached and configured.
         this.connectCodeBlockEvent(
-            this.entity,
+            this._purchaseTriggerBox,
             hz.CodeBlockEvents.OnPlayerEnterTrigger,
             this.handlePlayerEnterTrigger.bind(this) // Bind 'this' to maintain context within the callback.
         );
@@ -46,7 +65,6 @@ export class CatnipFieldInteraction extends hz.Component<typeof CatnipFieldInter
     }
 
     override start() {
-        console.log(`CatnipFieldInteraction started for entity: ${this.entity.name.get()}`);
     }
 
     /**
@@ -54,18 +72,33 @@ export class CatnipFieldInteraction extends hz.Component<typeof CatnipFieldInter
      * @param player The player entity that entered the trigger.
      */
     private async handlePlayerEnterTrigger(player: hz.Player) {
-        // Ensure PlayerDataManager and AnalyticsManager instances are accessible.
-        if (!PlayerDataManager.s_instance) {
-            console.warn("CatnipFieldInteraction: PlayerDataManager instance not available. Cannot process purchase.");
+
+        console.log("TRIGGER ENTERED!");
+
+        // Check for ownership so that only the owning player can purchase
+        if (player != this.entity.owner.get()) {
+            console.log(`Incorrect player (ID: ${player.id}) has stepped on platform owned by player ${this.entity.owner.get().id})`);
+            this.world.ui.showPopupForPlayer(player, "You can only purchase from your own plot!", 3000);
             return;
         }
-        if (!AnalyticsManager.s_instance) {
-            console.warn("CatnipFieldInteraction: AnalyticsManager instance not available. Analytics will not be logged.");
-            // Continue execution as analytics is secondary to core game logic.
+        else {
+            console.log(`Correct player (ID: ${player.id}) has stepped on platform owned by player ${this.entity.owner.get().id})`);
         }
 
+        // NEW: Send a Network Event to the server-side PlayerManager to request the purchase
+        if (this._playerManagerEntity && this._playerManagerEntity.exists()) {
+            this.sendNetworkEvent(
+                this._playerManagerEntity, // Target the server-owned PlayerManager entity
+                CatnipGameEvents.OnPurchaseCatnipFieldRequest,
+                { player: player, platformEntityId: this.entity.id.toString() } // Send relevant info
+            );
+            console.log(`CatnipFieldInteraction: Sent purchase request for ${player.name.get()} to PlayerManager.`);
+        } else {
+            console.error("CatnipFieldInteraction: PlayerManager entity is not available to send purchase request.");
+        }
+/*
         // Retrieve the player's current data.
-        let playerData = PlayerDataManager.s_instance.getPlayerData(player);
+        let playerData = this.playerDataManager.getPlayerData(player);
 
         if (!playerData) {
             console.warn(`CatnipFieldInteraction: Player data not found for ${player.name.get()}. Cannot process purchase.`);
@@ -81,13 +114,13 @@ export class CatnipFieldInteraction extends hz.Component<typeof CatnipFieldInter
             playerData.catnipFields += 1;
 
             // Update the player's data through the PlayerDataManager.
-            await PlayerDataManager.s_instance.setPlayerData(player, playerData);
+            await this.playerDataManager.setPlayerData(player, playerData);
             console.log(`${player.name.get()} purchased a catnip field! New catnip: ${playerData.catnip}, New fields: ${playerData.catnipFields}`);
 
             // Log the purchase event using the AnalyticsManager.
-            if (AnalyticsManager.s_instance) {
+            if (this.analyticsManager) {
                 // Send a custom analytics event for the purchase [Outline].
-                AnalyticsManager.s_instance.sendItemPurchasedEvent(
+                this.analyticsManager.sendItemPurchasedEvent(
                     player,
                     "catnip_field", // SKU or identifier for the purchased item.
                     GameConstants.CATNIP_FIELD_COST,
@@ -113,6 +146,7 @@ export class CatnipFieldInteraction extends hz.Component<typeof CatnipFieldInter
         }
         // Always update color after interaction, even if purchase fails.
 //        this.updatePurchasePlatformColor({ player, playerData });    
+*/
     }
 
     private updatePurchasePlatformColor(data: { player: hz.Player, playerData: PlayerData }) {
@@ -141,7 +175,7 @@ export class CatnipFieldInteraction extends hz.Component<typeof CatnipFieldInter
 
         const newText = `${currentCost}<br>catnip<br>needed`;
         this.purchaseText.text.set(newText);
-        console.log(`text updated to: ${newText}`);
+//        console.log(`text updated to: ${newText}`);
 
     }
    
