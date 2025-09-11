@@ -24,13 +24,10 @@ export class CatnipFieldVisualizer extends hz.Component<typeof CatnipFieldVisual
 
     // --- Private Fields ---
     // An array to store all spawned catnip field meshes
-    private spawnedFieldMeshes: hz.Entity[] = [];
-    private gridOriginPosition: hz.Vec3 = hz.Vec3.zero;
-    private gridOriginRotation: hz.Quaternion = hz.Quaternion.one;
+    private _spawnedFieldMeshes: hz.Entity[] = [];
+    private _gridOriginPosition: hz.Vec3 = hz.Vec3.zero;
+    private _gridOriginRotation: hz.Quaternion = hz.Quaternion.one;
 
-    // --- Lifecycle Methods ---
-
-    // preStart() is called before start() and is suitable for event subscriptions
     override preStart() {
         // Subscribe to the network event broadcast by PlayerDataManager when player data updates
         // This ensures the visualizer reacts whenever a player buys a new field.
@@ -61,8 +58,8 @@ export class CatnipFieldVisualizer extends hz.Component<typeof CatnipFieldVisual
         }
 
         // Store the grid's origin position and rotation from the reference entity
-        this.gridOriginPosition = this.props.gridOriginEntity.position.get();
-        this.gridOriginRotation = this.props.gridOriginEntity.rotation.get();
+        this._gridOriginPosition = this.props.gridOriginEntity.position.get();
+        this._gridOriginRotation = this.props.gridOriginEntity.rotation.get();
 
         // Spawn all 200 field meshes at the hidden position and store them
         for (let i = 0; i < MAX_DISPLAY_FIELDS; i++) {
@@ -78,7 +75,7 @@ export class CatnipFieldVisualizer extends hz.Component<typeof CatnipFieldVisual
                 if (spawnedObjects.length > 0) {
                     const fieldMesh = spawnedObjects[0]; // Assuming the asset is a single root entity
                     fieldMesh.visible.set(false); // Hide the mesh initially [35-41]
-                    this.spawnedFieldMeshes.push(fieldMesh); // Add to our array for management
+                    this._spawnedFieldMeshes.push(fieldMesh); // Add to our array for management
                 } else {
                     console.warn(`CatnipFieldVisualizer: No entities spawned for field index ${i}.`);
                 }
@@ -86,24 +83,18 @@ export class CatnipFieldVisualizer extends hz.Component<typeof CatnipFieldVisual
                 console.error(`CatnipFieldVisualizer: Error spawning catnip field mesh ${i}:`, error);
             }
         }
-        console.log(`CatnipFieldVisualizer: Successfully spawned and hid ${this.spawnedFieldMeshes.length} catnip field meshes.`);
+        console.log(`CatnipFieldVisualizer: Successfully spawned and hid ${this._spawnedFieldMeshes.length} catnip field meshes.`);
 
         // An initial update may be needed if player data is already available before `onPlayerDataUpdated` fires.
         // For simplicity, we rely on the `onPlayerDataUpdated` event to trigger the first proper visualization.
     }
 
-    // --- Private Helper Methods ---
-
-    /**
-     * Updates the visibility and position of catnip field meshes based on the number of fields owned.
-     * @param numFieldsOwned The current number of catnip fields the player owns.
-     */
     private updateFieldVisuals(numFieldsOwned: number) {
         // Determine how many fields should currently be displayed, capping at MAX_DISPLAY_FIELDS
         const fieldsToDisplay = Math.min(numFieldsOwned, MAX_DISPLAY_FIELDS);
 
-        for (let i = 0; i < this.spawnedFieldMeshes.length; i++) {
-            const fieldMesh = this.spawnedFieldMeshes[i];
+        for (let i = 0; i < this._spawnedFieldMeshes.length; i++) {
+            const fieldMesh = this._spawnedFieldMeshes[i];
 
             if (i < fieldsToDisplay) {
                 // If the current index is less than fieldsToDisplay, this mesh should be visible
@@ -149,8 +140,8 @@ export class CatnipFieldVisualizer extends hz.Component<typeof CatnipFieldVisual
 
         // Transform the local offset into world coordinates using the grid origin entity's position and rotation [24, 25]
         const worldPosition = hz.Vec3.add(
-            this.gridOriginPosition,
-            hz.Quaternion.mulVec3(this.gridOriginRotation, localOffset)
+            this._gridOriginPosition,
+            hz.Quaternion.mulVec3(this._gridOriginRotation, localOffset)
         );
 
 //        console.log(`Spawning field in pos(${worldPosition.x},${worldPosition.y},${worldPosition.z})`);

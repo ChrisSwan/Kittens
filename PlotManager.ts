@@ -1,45 +1,30 @@
 import * as hz from 'horizon/core';
 import { PlayerData } from 'GameConstants';
-import { PlayerDataManager } from 'PlayerDataManager';
 
 export class PlotManager extends hz.Component<typeof PlotManager> {
     // Defines properties that can be set in the editor for this component
     static propsDefinition = {
-        // Reference to the TextGizmo entity located within this specific plot
         farmOwnerText: { type: hz.PropTypes.Entity },
-        // Catnip field assets
         catnipFieldAsset: {type: hz.PropTypes.Asset},
-//        plotTriggerProp: { type: hz.PropTypes.Entity },
-//        plotPlatformMeshProp: { type: hz.PropTypes.Entity },
     };
 
     private _farmOwnerText: hz.TextGizmo | undefined;
     private _catnipFieldAsset: hz.Asset | undefined;
     private _spawnedPurchasePlatform: hz.Entity | undefined;
-//    private _catnipPurchaseTrigger: hz.TriggerGizmo | undefined;
-//    private _catnipPurchasePlatform: hz.MeshEntity | undefined;
-    // You might also store references to other internal entities like the trigger or mesh.
-    // private _plotTrigger: hz.TriggerGizmo | undefined;
-    // private _plotPlatformMesh: hz.MeshEntity | undefined;
 
     override preStart(): void {
         // Validate that the 'plotText' property is set and store a typed reference to it.
         if (this.props.farmOwnerText) {
-            this._farmOwnerText = this.props.farmOwnerText.as(hz.TextGizmo); // Cast to TextGizmo [2, 3]
+            this._farmOwnerText = this.props.farmOwnerText.as(hz.TextGizmo);
         } else {
             console.error(`Plot: Missing 'plotText' property on ${this.entity.name.get()}. Cannot display plot text.`);
         }
 
         if (this.props.catnipFieldAsset) {
-            this._catnipFieldAsset = this.props.catnipFieldAsset.as(hz.Asset); // Cast to TextGizmo [2, 3]
+            this._catnipFieldAsset = this.props.catnipFieldAsset.as(hz.Asset);
         } else {
             console.error(`Plot: Missing 'catnipPurchasePad' property on ${this.entity.name.get()}. Cannot display plot text.`);
         }
-        // Initialize other references if you have them, e.g.:
-        // if (this.props.plotTrigger) {
-        //     this._plotTrigger = this.props.plotTrigger.as(hz.TriggerGizmo);
-        //     this.connectCodeBlockEvent(this._plotTrigger, hz.CodeBlockEvents.OnPlayerEnterTrigger, this.onPlotTriggerEnter.bind(this));
-        // }
     }
 
     start() {
@@ -52,9 +37,6 @@ export class PlotManager extends hz.Component<typeof PlotManager> {
             this._farmOwnerText.text.set(text); // Use the .set() method to update TextGizmo content [2, 3]
             this._farmOwnerText.visible.set(true);
         }
-
-        // HACK! For now let's spawn in the catnipfield assets in this method
-
     }
 
     public async spawnPlayerSpecificAssets(player: hz.Player, initialPlayerData: PlayerData): Promise<void> {
@@ -85,11 +67,6 @@ export class PlotManager extends hz.Component<typeof PlotManager> {
                 } else {
                     console.warn(`Plot ${this.entity.name.get()}: Spawned Catnip Purchase Platform is missing Trigger Gizmo.`);
                 }
-
-                // Update the plot's display text to show ownership
-//                this.setClaimText(`Owned by:\n${player.name.get()}`);
-//                if (this._farmOwnerText) this._farmOwnerText.visible.set(true);
-
             } else {
                 console.error(`Plot ${this.entity.name.get()}: Failed to spawn Catnip Purchase Platform asset.`);
             }
@@ -106,11 +83,5 @@ export class PlotManager extends hz.Component<typeof PlotManager> {
         // this._plotTrigger?.enabled.set(true);
     }
 
-    // Example of an internal trigger handler for the plot (if the plot manages its own trigger)
-    // private onPlotTriggerEnter(player: hz.Player): void {
-    //     console.log(`${player.name.get()} entered Plot ${this.entity.name.get()}`);
-    //     // This would typically broadcast an event or call a method on PlayerManager
-    //     // to handle the actual claiming logic.
-    // }  
 }
 hz.Component.register(PlotManager);

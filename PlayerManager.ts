@@ -1,6 +1,6 @@
 import * as hz from 'horizon/core';
 import { PlayerData, GameConstants } from 'GameConstants';
-import { CatnipGameEvents } from 'Events';
+import { GameEvents } from 'Events';
 import { IPlayerManager } from 'IPlayerManager';
 import { IAnalyticsManager } from 'IAnalyticsManager';
 import { IPlayerDataManager } from 'IPlayerDataManager';
@@ -19,24 +19,24 @@ export class PlayerManager extends hz.Component<typeof PlayerManager> implements
     Plot4: { type: hz.PropTypes.Entity },
   };
 
-  mainPlayerUIs: hz.Entity[] = [];
-  plots: hz.Entity[] = [];
+  _mainPlayerUIs: hz.Entity[] = [];
+  _plots: hz.Entity[] = [];
 
-  private playerDataManager: IPlayerDataManager | undefined; 
-  private analyticsManager: IAnalyticsManager | undefined;
-  private playerPlotOwnership: Map<hz.Player, hz.Entity> = new Map();
+  private _playerDataManager: IPlayerDataManager | undefined; 
+  private _analyticsManager: IAnalyticsManager | undefined;
+  private _playerPlotOwnership: Map<hz.Player, hz.Entity> = new Map();
 
   preStart(): void {
     // Assign the UIs from the prop types
     if (this.props.MainPlayerUI1 && this.props.MainPlayerUI2 && this.props.MainPlayerUI3 && this.props.MainPlayerUI4) {
-      this.mainPlayerUIs = [this.props.MainPlayerUI1, this.props.MainPlayerUI2, this.props.MainPlayerUI3, this.props.MainPlayerUI4];
+      this._mainPlayerUIs = [this.props.MainPlayerUI1, this.props.MainPlayerUI2, this.props.MainPlayerUI3, this.props.MainPlayerUI4];
     }    
     else {
       console.error("Not all 4 UI HUDs have been connected to the PlayerManager")
     }
 
     if (this.props.Plot1 && this.props.Plot2 && this.props.Plot3 && this.props.Plot4) {
-      this.plots = [this.props.Plot1, this.props.Plot2, this.props.Plot3, this.props.Plot4];
+      this._plots = [this.props.Plot1, this.props.Plot2, this.props.Plot3, this.props.Plot4];
     }
     else {
       console.error("Not all 4 Plots assets have been connected to the PlayerManager")
@@ -48,17 +48,18 @@ export class PlayerManager extends hz.Component<typeof PlayerManager> implements
   }
 
   override start() {
-        this.playerDataManager = ServiceLocator_Data.playerDataManager;
-        if (!this.playerDataManager) {
+        this._playerDataManager = ServiceLocator_Data.playerDataManager;
+        if (!this._playerDataManager) {
             console.error("PlayerManager: PlayerDataManager not registered in ServiceLocator_Data.");
         }
-        this.analyticsManager = ServiceLocator_Data.analyticsManager;
-        if (!this.analyticsManager) {
+        this._analyticsManager = ServiceLocator_Data.analyticsManager;
+        if (!this._analyticsManager) {
             console.error("PlayerManager: AnalyticsManager not registered in ServiceLocator_Data.");
         }        
+        // Hook up client->server event methods
         this.connectNetworkEvent(
             this.entity,
-            CatnipGameEvents.OnPurchaseCatnipFieldRequest,
+            GameEvents.OnPurchaseCatnipFieldRequest,
             (data: { player: hz.Player, platformEntityId: string }) => {
                 this.handlePurchaseCatnipFieldRequest(data.player, data.platformEntityId);
             }
@@ -77,13 +78,13 @@ export class PlayerManager extends hz.Component<typeof PlayerManager> implements
       this.assignMainPlayerUILocalScriptOwner(player, playerIndex);
 //    }
 
-      if (playerIndex < this.plots.length) {
-        const plotEntity = this.plots[playerIndex];
+      if (playerIndex < this._plots.length) {
+        const plotEntity = this._plots[playerIndex];
         const plotComponent = plotEntity.getComponents(PlotManager);
         if (plotComponent) {
           let playerData: PlayerData | undefined;
-          if (this.playerDataManager) {
-            playerData = await this.playerDataManager.getPlayerData(player);
+          if (this._playerDataManager) {
+            playerData = await this._playerDataManager.getPlayerData(player);
           }
           else {
             console.error("PlayerManager: PlayerDataManager is not available to retrieve player data.");
@@ -91,7 +92,7 @@ export class PlayerManager extends hz.Component<typeof PlayerManager> implements
           }
           if (playerData) {
             console.log(`${player.name.get()} has existing data. Assigning plot ${playerIndex + 1}.`);
-            this.playerPlotOwnership.set(player, plotEntity);            
+            this._playerPlotOwnership.set(player, plotEntity);            
             await plotComponent[0].spawnPlayerSpecificAssets(player, playerData);
             plotComponent[0].setClaimText(`Owned by:\n${player.name.get()}`);
             console.log(`Plot ${playerIndex + 1} text updated to show owner: ${player.name.get()}`);
@@ -107,21 +108,30 @@ export class PlayerManager extends hz.Component<typeof PlayerManager> implements
 
   }
 
+  assignMainPlayerUILocalScriptOwner(player: hz.Player, scriptIndex: number): void {
+    if (this._mainPlayerUIs[scriptIndex].owner.get() !== player) {
+      this._mainPlayerUIs[scriptIndex].owner.set(player);
+    }
+  }  
+
+  // #################################################################################### //
+  // Client event handling below
+  // #################################################################################### //
   private async handlePurchaseCatnipFieldRequest(player: hz.Player, platformEntityId: string) {
     console.log(`PlayerManager: Received purchase request from ${player.name.get()} for platform ${platformEntityId}.`);
 
     // Check if PlayerDataManager is available on the server
-    if (!this.playerDataManager) {
+    if (!this._playerDataManager) {
         console.warn("PlayerManager: PlayerDataManager instance not available. Cannot process purchase request.");
         return;
     }
 
     // AnalyticsManager is optional, so check before using
-    if (!this.analyticsManager) {
+    if (!this._analyticsManager) {
         console.warn("PlayerManager: AnalyticsManager instance not available. Analytics will not be logged.");
     }
 
-    let playerData = this.playerDataManager.getPlayerData(player);
+    let playerData = this._playerDataManager.getPlayerData(player);
     if (!playerData) {
         console.warn(`PlayerManager: Player data not found for ${player.name.get()}. Cannot process purchase.`);
         return;
@@ -129,19 +139,17 @@ export class PlayerManager extends hz.Component<typeof PlayerManager> implements
 
     const currentFieldCost = GameConstants.CATNIP_FIELD_COST * (1 + (playerData.catnipFields * GameConstants.CATNIP_FIELD_PRICE_RATIO));
 
-//    console.log(`player catnip amount = ${playerData.catnip}, catnip field cost = ${currentFieldCost}`);
-
     if (playerData.catnip >= currentFieldCost) {
       // Perform the purchase logic (deduct catnip, increment fields)
       playerData.catnip -= currentFieldCost;
       playerData.catnipFields += 1;
-      await this.playerDataManager.setPlayerData(player, playerData); // This will broadcast PlayerDataEvents.onPlayerDataUpdated
+      await this._playerDataManager.setPlayerData(player, playerData); // This will broadcast PlayerDataEvents.onPlayerDataUpdated
 
       console.log(`${player.name.get()} purchased a catnip field! New catnip: ${playerData.catnip}, New fields: ${playerData.catnipFields}`);
 
       // Log analytics for the purchase
-      if (this.analyticsManager) {
-          this.analyticsManager.sendItemPurchasedEvent(
+      if (this._analyticsManager) {
+          this._analyticsManager.sendItemPurchasedEvent(
               player,
               "catnip_field",
               GameConstants.CATNIP_FIELD_COST,
@@ -160,11 +168,5 @@ export class PlayerManager extends hz.Component<typeof PlayerManager> implements
     }
   }
 
-
-  assignMainPlayerUILocalScriptOwner(player: hz.Player, scriptIndex: number): void {
-    if (this.mainPlayerUIs[scriptIndex].owner.get() !== player) {
-      this.mainPlayerUIs[scriptIndex].owner.set(player);
-    }
-  }  
 }
 hz.Component.register(PlayerManager);

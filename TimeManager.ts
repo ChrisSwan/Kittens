@@ -15,14 +15,10 @@ export class TimeManager extends hz.Component<typeof TimeManager> implements ITi
     public onTickEvent = new hz.LocalEvent<{ tickNumber: number }>('onTickEvent');
     public onDayEvent = new hz.LocalEvent<{ dayNumber: number }>('onDayEvent');
 
-    private currentTick: number = 0; // Tracks the current game tick number.
-    private currentDay: number = 0;  // Tracks the current game day number.
-    private timerIntervalId: number = -1; // Stores the interval ID to manage starting and stopping the timer.
+    private _currentTick: number = 0; // Tracks the current game tick number.
+    private _currentDay: number = 0;  // Tracks the current game day number.
+    private _timerIntervalId: number = -1; // Stores the interval ID to manage starting and stopping the timer.
 
-    /**
-     * The `preStart()` method is guaranteed to run for all components before any `start()` methods are called.
-     * This ensures the `TimeManager` is registered and available for other components that might need it early.
-     */
     override preStart(): void {
         // Registers this instance with the global ServiceLocator_Data for easy access by other scripts.
         ServiceLocator_Data.timeManager = this as ITimeManager;
@@ -45,25 +41,25 @@ export class TimeManager extends hz.Component<typeof TimeManager> implements ITi
      * and broadcasts `onTickEvent` and `onDayEvent` at the defined intervals.
      */
     public startTimer(): void {
-        if (this.timerIntervalId !== -1) {
+        if (this._timerIntervalId !== -1) {
             console.warn("TimeManager: Timer is already running.");
             return;
         }
 
         console.log("TimeManager: Starting timer.");
         // `async.setInterval` is used for recurring time-based operations in Horizon Worlds.
-        this.timerIntervalId = this.async.setInterval(() => {
-            this.currentTick++;
+        this._timerIntervalId = this.async.setInterval(() => {
+            this._currentTick++;
 
             // Broadcast the current tick number for any subscribed components.
-            this.sendLocalBroadcastEvent(this.onTickEvent, {tickNumber: this.currentTick});
+            this.sendLocalBroadcastEvent(this.onTickEvent, {tickNumber: this._currentTick});
 
             // Checks if a new game day has commenced based on `TICKS_PER_DAY`.
-            if (this.currentTick % GameConstants.TICKS_PER_DAY === 0) {
-                this.currentDay++;
+            if (this._currentTick % GameConstants.TICKS_PER_DAY === 0) {
+                this._currentDay++;
 //                console.log(`TimeManager: Day ${this.currentDay} started.`);
                 // Broadcast the current day number for any subscribed components.
-                this.sendLocalBroadcastEvent(this.onDayEvent, {dayNumber: this.currentDay});
+                this.sendLocalBroadcastEvent(this.onDayEvent, {dayNumber: this._currentDay});
             }
 
             // Optional: Uncomment for granular tick-by-tick debugging messages.
@@ -76,9 +72,9 @@ export class TimeManager extends hz.Component<typeof TimeManager> implements ITi
      * Stops the internal game timer if it is currently running, clearing the interval.
      */
     public stopTimer(): void {
-        if (this.timerIntervalId !== -1) {
-            this.async.clearInterval(this.timerIntervalId);
-            this.timerIntervalId = -1;
+        if (this._timerIntervalId !== -1) {
+            this.async.clearInterval(this._timerIntervalId);
+            this._timerIntervalId = -1;
             console.log("TimeManager: Timer stopped.");
         }
     }

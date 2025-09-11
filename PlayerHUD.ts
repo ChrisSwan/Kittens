@@ -1,19 +1,19 @@
 import * as hz from 'horizon/core';
 import { UIComponent, View, Text, Binding, ViewStyle, UINode, TextStyle } from 'horizon/ui';
-import { PlayerDataManager, PlayerDataEvents } from 'PlayerDataManager';
+import { PlayerDataEvents } from 'PlayerDataManager';
 import { PlayerData } from 'GameConstants'; // Assuming PlayerData type is exported from GameConstants
 
 class PlayerHUD extends UIComponent<typeof PlayerHUD> {
     static propsDefinition: {};
 
     // A Binding is used to dynamically update the text displayed on the UI.
-    // It's initialized with a default string [2-4].
-    private catnipAmountBinding = new Binding<string>("Catnip: 0");
+    // It's initialized with a default string.
+    private _catnipAmountBinding = new Binding<string>("Catnip: 0");
 
     preStart() {
-        // This method is called before start() and is ideal for setting up event listeners [5].
+        // This method is called before start() and is ideal for setting up event listeners.
         // We subscribe to a network broadcast event that is sent by PlayerDataManager
-        // whenever any player's data (including catnip) is updated [6, 7].
+        // whenever any player's data (including catnip) is updated.
         this.connectNetworkBroadcastEvent(
             PlayerDataEvents.onPlayerDataUpdated,
             (data: { player: hz.Player, playerData: PlayerData }) => {
@@ -23,7 +23,7 @@ class PlayerHUD extends UIComponent<typeof PlayerHUD> {
     }
     
     initializeUI() {
-        // `initializeUI()` is an abstract method that you must override to define the UI's structure [8].
+        // `initializeUI()` is an abstract method that you must override to define the UI's structure.
         // This check prevents the UI from being rendered for the server player, as UIComponents in Local mode
         // are meant for individual players
 /*        
@@ -33,12 +33,10 @@ class PlayerHUD extends UIComponent<typeof PlayerHUD> {
 */
         // Define the visual style for the catnip display text.
         // The design specifies the text should be clearly readable on mobile and white [1].
-//        const catnipTextStyle: ViewStyle = {
         const catnipTextStyle: TextStyle = {
             position: "absolute",
             top: "5%", // Positions the text at 5% from the top of the screen.
             left: "50%", // Centers the text horizontally.
-//            transform: "translate(-50%, 0)", // Adjusts the horizontal centering more precisely.
             color: "white", // Sets the text color to white [1].
             fontSize: 28, // Sets a readable font size [1].
             fontWeight: "bold", // Makes the text bold for better readability.
@@ -51,19 +49,13 @@ class PlayerHUD extends UIComponent<typeof PlayerHUD> {
         return View({
             children: [
                 Text({
-                    text: this.catnipAmountBinding, // The text property is bound to our `catnipAmountBinding` [2, 3].
+                    text: this._catnipAmountBinding, // The text property is bound to our `catnipAmountBinding` [2, 3].
                     style: catnipTextStyle,
                 }),
             ],
         });
     }
 
-    /**
-     * Updates the catnip display for the owning player.
-     * This method is called when player data is updated via the `onPlayerDataUpdated` event [6].
-     * @param updatedPlayer The player whose data was updated.
-     * @param updatedPlayerData The new player data containing the catnip amount.
-     */
     private updateCatnipDisplay(updatedPlayer: hz.Player, updatedPlayerData: PlayerData) {
         const localPlayer = this.world.getLocalPlayer();
 
@@ -72,7 +64,7 @@ class PlayerHUD extends UIComponent<typeof PlayerHUD> {
         if (localPlayer && localPlayer.id === updatedPlayer.id) {
             // Update the binding with the new catnip value, formatted to a whole number.
             // The `[localPlayer]` argument ensures this update only affects the UI of this specific player [12].
-            this.catnipAmountBinding.set(`Catnip: ${updatedPlayerData.catnip.toFixed(0)}`, [localPlayer]);
+            this._catnipAmountBinding.set(`Catnip: ${updatedPlayerData.catnip.toFixed(0)}`, [localPlayer]);
         }
     }
 }

@@ -7,19 +7,19 @@ import { ITimeManager } from 'ITimeManager'; // Used for type safety when refere
 
 export class CatnipGenerator extends hz.Component<typeof CatnipGenerator> {
     static propsDefinition = {};
-    private timeManager!: ITimeManager; // A reference to the TimeManager instance, obtained via ServiceLocator_Data.
+    private _timeManager!: ITimeManager; // A reference to the TimeManager instance, obtained via ServiceLocator_Data.
 
     override preStart(): void {
         // Retrieves the TimeManager instance from the Service Locator. This is safe to do in preStart
         // because TimeManager registers itself at the same phase.
-        this.timeManager = ServiceLocator_Data.timeManager;
+        this._timeManager = ServiceLocator_Data.timeManager;
     }
 
     override start() {
         console.log("CatnipGenerator started.");
         // Connects to the TimeManager's `onDayEvent`. This replaces the previous `setInterval` logic,
         // ensuring catnip generation occurs precisely once per game day [2].
-        this.connectLocalBroadcastEvent(this.timeManager.onDayEvent, this.handleDayEvent.bind(this));
+        this.connectLocalBroadcastEvent(this._timeManager.onDayEvent, this.handleDayEvent.bind(this));
     }
 
     private handleDayEvent(data: { dayNumber: number }): void {

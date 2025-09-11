@@ -19,8 +19,8 @@ export const GameConstants = {
     BASE_CATNIP_PER_SECOND: 1, // The base amount of catnip generated per second for each player.
     CATNIP_PER_FIELD_PER_SECOND: 0.125, // The additional catnip generated per second for each purchased catnip field.
 
-    GREEN_COLOR: new hz.Color(0, 0.5, 0), // Example green color for affordable [18]
-    RED_COLOR: new hz.Color(0.5, 0, 0),       // Example red color for unaffordable [18]
+    GREEN_COLOR: new hz.Color(0, 0.5, 0), // Example green color for affordable
+    RED_COLOR: new hz.Color(0.5, 0, 0),       // Example red color for unaffordable
 
     // Persistence variable key
     PLAYER_DATA_PPV_KEY: "KittensGame:playerData", // Unique key for the Player Persistent Variable (PPV) storing player progress.

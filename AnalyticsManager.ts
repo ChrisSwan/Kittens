@@ -10,15 +10,13 @@ export class AnalyticsManager extends hz.Component<typeof AnalyticsManager> impl
         debugAnalytics: { type: hz.PropTypes.Boolean, default: false },
     };
 
-    // **Singleton instance**: This static property allows other scripts to easily access this manager [1, 2].
+    // Singleton instance: This static property allows other scripts to easily access this manager
     static s_instance: AnalyticsManager;
 
     // Prop value accessed via `this.props.debugAnalytics`.
     debugAnalytics!: boolean;
 
-    /**
-     * `preStart()` is ideal for assigning the singleton instance to ensure it's available early.
-     */
+    // `preStart()` is ideal for assigning the singleton instance to ensure it's available early.
     override preStart() {
         AnalyticsManager.s_instance = this;
         ServiceLocator_Data.analyticsManager = this;        
@@ -79,14 +77,6 @@ export class AnalyticsManager extends hz.Component<typeof AnalyticsManager> impl
         }
     }
 */
-    /**
-     * Specific helper method for logging an item purchase event.
-     * This provides a clear, type-safe way for `CatnipFieldInteraction` to report purchases.
-     * @param player The player who made the purchase.
-     * @param itemSKU A string identifier for the purchased item (e.g., "catnip_field").
-     * @param price The price paid for the item.
-     * @param quantity The quantity of the item purchased.
-     */
     public sendItemPurchasedEvent(player: hz.Player, itemSKU: string, price: number, quantity: number) {
         const payload = {
             player: player,
