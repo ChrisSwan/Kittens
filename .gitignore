@@ -1,0 +1,8 @@
+# Ignore all files
+*
+# Except .ts files
+!*.ts
+
+
+.backups/
+.operations.log
