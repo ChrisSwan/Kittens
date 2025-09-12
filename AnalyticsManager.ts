@@ -22,6 +22,8 @@ export class AnalyticsManager extends hz.Component<typeof AnalyticsManager> impl
         ServiceLocator_Data.analyticsManager = this;        
     }
 
+
+    
     override start() {
         console.log("AnalyticsManager started.");
 
